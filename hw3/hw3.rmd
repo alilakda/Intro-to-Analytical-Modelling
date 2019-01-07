@@ -1,0 +1,159 @@
+---
+title: "Homework 3 - Ali Lakdawala, Kunle Lawal, Anu Rana, Mihir Tulpule"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction to Analytical Modeling - 
+## Professor Sokol & Nirmit Chetwani
+
+# Question 4.2
+
+*Using crime data from the file uscrime.txt (http://www.statsci.org/data/general/uscrime.txt, description at http://www.statsci.org/data/general/uscrime.html), test to see whether there are any outliers in the last column (number of crimes per 100,000 people).  Use the grubbs.test function in the outliers package in R.*
+
+```{r}
+
+rm(list = ls())
+setwd("/Users/alimujtaba/Google Drive/isye6501modelling/isye6501homeworks/hw3")
+crimedata = read.table("uscrime.txt", header = TRUE)
+#Exploring the Data 
+head(crimedata)
+summary(crimedata$Crime)
+#Visualzing to notice any outliers
+hist(crimedata$Crime)
+boxplot(crimedata$Crime)
+# Our boxplot indicates outliers. 
+table(crimedata$Crime)
+
+```
+
+Using the grubbs.test function: 
+```{r}
+require(outliers)
+help("grubbs.test")
+#Test is based by calculating score of this outlier G (outlier minus mean and divided by sd)
+# Alternative method is calculating ratio of variances of two datasets - full dataset and dataset without outlier. 
+#The obtained value called U
+x = crimedata$Crime
+grubbs.test(x) #Defaults with type = 10
+grubbs.test(x, type = 11)
+# For the two tail test we cannot reject the null hypothesis 
+
+```
+We find with confidence that 1993 is an outlier using the grubbs.test function.
+
+# 6.1
+
+*Describe a situation or problem from your job, everyday life, current events, etc., for which a Change Detection model would be appropriate. Applying the CUSUM technique, how would you choose the critical value and the threshold?*
+
+## Example: Heart beats per minute when working out in the gym
+Max_heart_rate: (220bpm - age)    
+
+Optimal heart rate = less than 0.85(max_heart_rate) 
+
+### Critical value -> 
+
+The rate of change of your heart beats within time range.
+For example when you're working out, you don't want your heart rate to change to fast because it could lead to cardiac arrest.  
+
+### Threshold ->
+Max threshold: your heart rate is too high/overworking and you're burning muscle leading to muscle deterioration.
+Min threshold: your heart rate is too low and you are not working out hard enough. 
+
+
+# 6.2.2 
+
+(a) Using the CUSUM method we found the date with the maximum CUSUM temperature for a particular year. 
+Please reference the attached Excel sheet 2 for the calculation. 
+
+
+![The last day of summer for each year](/Users/alimujtaba/Google Drive/isye6501modelling/isye6501homeworks/hw3/Graph1.png)  
+
+&nbsp;
+
+(b) Again using the CUSUM method we calculated the average summer temprature for each year. Using this data, we found that overall trend of increasing temperatures in ATL. We noticed a significant spike in average temperature beginning in 2010. 
+Please reference the attached Excel sheet. ("q6.2.txt") for the calculations. 
+
+![Average CUSUM temperature for each of the years.](/Users/alimujtaba/Google Drive/isye6501modelling/isye6501homeworks/hw3/Graph2.png)  
+&nbsp;
+
+It is also important to determine with mean is a good estimate of this data or whether there are outliers biasing the data. We can determine this easily through boxplots. 
+
+```{r}
+dat <- read.csv("cusum_excel.csv", header = TRUE)
+
+head(dat)
+
+library(ggplot2)
+
+summary(dat$st.1996)
+boxplot(dat$st.1996)
+
+summary(dat$st.1997)
+boxplot(dat$st.1997)
+
+summary(dat$st.1998)
+boxplot(dat$st.1998)
+
+summary(dat$st.1999)
+boxplot(dat$st.1999)
+
+summary(dat$st.2000)
+boxplot(dat$st.2000)
+
+summary(dat$st.2001)
+boxplot(dat$st.2001)
+
+summary(dat$st.2002)
+boxplot(dat$st.2002)
+
+summary(dat$st.2003)
+boxplot(dat$st.2003)
+
+summary(dat$st.2004)
+boxplot(dat$st.2004)
+
+summary(dat$st.2005)
+boxplot(dat$st.2005)
+
+summary(dat$st.2006)
+boxplot(dat$st.2006)
+
+summary(dat$st.2007)
+boxplot(dat$st.2007)
+
+summary(dat$st.2008)
+boxplot(dat$st.2008)
+
+summary(dat$st.2009)
+boxplot(dat$st.2009)
+
+summary(dat$st.2010)
+boxplot(dat$st.2010)
+
+summary(dat$st.2011)
+boxplot(dat$st.2011)
+
+summary(dat$st.2012)
+boxplot(dat$st.2012)
+
+summary(dat$st.2013)
+boxplot(dat$st.2013)
+
+summary(dat$st.2014)
+boxplot(dat$st.2014)
+
+summary(dat$st.2015)
+boxplot(dat$st.2015)
+```
+
+We find that the 75th percentile could be a good estimate for our CUMSUM calculations. 
+
+Howevever, we get a very similar result with 2010 as the main inflection year. Please see attached excel sheet for calculations. 
+
+![CUSUM using 75th percentile for temperature for each of the years.](/Users/alimujtaba/Google Drive/isye6501modelling/isye6501homeworks/hw3/Graph3.png)
+
+

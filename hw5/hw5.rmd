@@ -1,0 +1,123 @@
+---
+title: "HW5 ISYE 6501"
+output: pdf_document
+author: "Kunle Lawal, Anubhav Rana, Mihir Tulpule, Ali Mujtaba Lakdawala"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 8.1
+
+
+*Describe a situation or problem from your job, everyday life, current events, etc., for which a linear regression model would be appropriate. List some (up to 5) predictors that you might use.*
+
+In the future (after graduating from the MSA program) we might want to buy a house we would like to predict the price of a house given certain characteristics. To solve this problem a linear regression could work well. 
+
+We could use the following as predictors to determine the value of a house to us personally, with a numerical rating instead from 1-10 rather than a price.  This model could be tailored to determine the estimated value to us as a user rather than the market price of the house. 
+
+Predictors that could be used in such a model are: 
+
+1. Age of house
+2. Location
+3. Number of schools in a 5 mile radius. 
+4. Median income of population 
+5. Number of bedrooms
+
+
+## Question 8.2
+
+*Using crime data from http://www.statsci.org/data/general/uscrime.txt  (file uscrime.txt, description at http://www.statsci.org/data/general/uscrime.html ), use regression (a useful R function is lm or glm) to predict the observed crime rate in a city with the following data:*
+
+M = 14.0  
+So = 0  
+Ed = 10.0  
+Po1 = 12.0  
+Po2 = 15.5  
+LF = 0.640  
+M.F = 94.0  
+Pop = 150  
+NW = 1.1  
+U1 = 0.120  
+U2 = 3.6  
+Wealth = 3200  
+Ineq = 20.1  
+Prob = 0.04  
+Time = 39.0  
+
+*Show your model (factors used and their coefficients), the software output, and the quality of fit. *
+
+*Note that because there are only 47 data points and 15 predictors, you’ll probably notice some overfitting.  We’ll see ways of dealing with this sort of problem later in the course.*
+```{r}
+setwd("/Users/alimujtaba/Google Drive/isye6501modelling/isye6501homeworks/hw5")
+require(data.table)
+
+crime_data <- read.table("uscrime.txt", header = TRUE)
+
+crime_data
+
+
+model <- lm(Crime ~ ., data = crime_data)
+# Plotting the model and the summary
+plot(model)
+summary(model)
+```
+
+The model quality is excellent shown by the multiple R-squared value of 0.8031 which shows that the model
+is very strong at predicting crime. The most significant predictors are:  
+1. M (percentage of males (14-24) in population
+2. Ed = Mean years of schooling for those above 25 
+3. Ineq = Income inequality 
+4. Prob = Probability of imprisonment.
+
+These conclusions are on a benchmark of alpha = 0.05. This does not mean that the rest of the predictors are insignificant. It just means that in the presence of the above predictors they do not add significant value to the model. 
+
+The model plots also show that there are very few outliers. QQ plot shows normality is good. The residuals vs. fitted plot shows that there is good variance in the model. No Heteroskedasticity. 
+
+```{r}
+# Getting a sense of the distribution of the data points. 
+summary(crime_data)
+
+```
+
+&nbsp;
+```{r}
+new_data_point = data.frame(M = 14.0, So = 0,  Ed = 10.0,  
+Po1 = 12.0,  
+Po2 = 15.5,  
+LF = 0.640,  
+M.F = 94.0,  
+Pop = 150,  
+NW = 1.1,  
+U1 = 0.120,  
+U2 = 3.6,  
+Wealth = 3200,  
+Ineq = 20.1,  
+Prob = 0.04,  
+Time = 39.0)
+
+predict <- predict.lm(model, new_data_point, interval = "prediction")
+predict 
+```
+
+
+The final prediction is below the min of crime and has a very large prediction interval. This is caused by the fact that a lot of the inputs tend towards the min and max of their respective ranges making it hard to be confident about the prediction. 
+
+
+### Additonal Analysis: 
+
+Using the most significant predictors from our initial model we created a new linear model with the predcitors Mo, Ed, Prob and Ineq. 
+
+```{r}
+
+model2 <- lm(Crime ~ M + Ed + Prob + Ineq, data = crime_data)
+# Plotting the model and the summary
+#plot(model)
+
+summary(model2)
+predict2 <- predict.lm(model2, new_data_point, interval = "prediction")
+predict2 
+```
+
+While those are the most significant predictors, by themselves they result in a poor model also resulting in a widely different prediction. From this we can see that all the other predictors while not significant contribute additional information to the construction of a good model. 

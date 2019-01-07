@@ -1,0 +1,70 @@
+---
+title: "HW4 ISYE 6501"
+output: pdf_document
+author: "Kunle Lawal, Anubhav Rana, Mihir Tulpule, Ali Mujtaba Lakdawala"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1
+*Describe a situation or problem from your job, everyday life, current events, etc., for which exponential smoothing would be appropriate. What data would you need? Would you expect the value of alpha (the first smoothing parameter) to be closer to 0 or 1, and why?*
+
+
+Forecasting cryptocurrency prices could be an area where an exponential smoothing model would be appropriate, as there is very little information on what differentiates currencies and impacts the demand of crypto currency prices. For this particular example, we would need customer demand data for a particular cryptocurrency as well as (in cases like blockchain, where there is a set supply of the currency) a measure of how much of the currency has currently been mined. 
+
+In our model we would choose a high alpha value to reduce an emphasis on the trend and previous fluctuations of crypto prices. This is because the previous exponential growth of these currencies after an intitial coin offering could severely distort our prediction. 
+
+This logic is generalizable to other commodities and general business forecasting where we do not have sufficient data to draw any causal links regarding demand. 
+
+# 2
+
+*Using the 20 years of daily high temperature data for Atlanta (July through October) from Question 6.2 (file temps.txt), build and use an exponential smoothing model to help make a judgment of whether the unofficial end of summer has gotten later over the 20 years.  (Part of the point of this assignment is for you to think about how you might use exponential smoothing to answer this question. Feel free to combine it with other models if you’d like to. There’s certainly more than one reasonable approach.) *
+
+```{r, eval=TRUE, message=TRUE, echo=TRUE}
+data = read.table("temps.txt", header = TRUE)
+datanew <- data.frame(temp = c(data[, 2], data[, 3], data[, 4], data[, 5], data[, 6], data[, 7],
+                               data[, 8], data[, 9], data[, 10], data[, 11], data[, 12],
+                               data[, 13], data[, 14], data[, 15], data[, 16],
+                               data[, 17], data[, 18], data[, 19], data[, 20], data[, 21]))
+
+fullts <- ts(datanew$temp, start=c(1995), end=c(2015), frequency=123)
+```
+
+We flattened the temperature dataset by joining the temperature values for the different years. This gave us a data frame with just one column representing the temperature values. 
+This data frame was then converted to a time-series starting from 1995 to 2015. The frequency of the series was set to 123 based on the number of observations present for one unit of time (year).  
+
+
+Initially we set the HoltWinters ETS model with default parameters allowing it to optimally pick the best values of alpha, gamma and beta. 
+
+```{r, eval=TRUE, message=TRUE, echo=TRUE}
+temp_holt <- HoltWinters(fullts)
+plot.ts(fullts)
+plot(temp_holt, lwd = 3)
+```
+
+However, at the defaults, Holt Winter picks a model that follows the original data very closely making it impossible to make any predictions from the data.  
+
+
+We then expertimented with different values of alpha, beta and gamma. In conclusion, gamma and beta affect trend and seasonality and both factors are important in our prediction of warming client and smoothing those out would result in an inaccurate analysis. 
+
+We tried multiple values of b and found that as b approaches 0 it is close to the level of smoothing we want to see to make an accurate estimate. 
+
+```{r, eval=TRUE, message=TRUE, echo=TRUE}
+temp_holt <- HoltWinters(fullts, alpha = 0.05, beta= 0.01, gamma= FALSE)
+plot.ts(fullts)
+plot(temp_holt, lwd = 3)
+```
+
+Thus eventually we set beta as FALSE to get the following graph. We set an alpha value of 0.05 to attempt to pick up on the overall trend instead of the random noise. 
+
+```{r, eval=TRUE, message=TRUE, echo=TRUE}
+temp_holt <- HoltWinters(fullts, alpha = 0.05, beta=FALSE, gamma=FALSE)
+plot.ts(fullts)
+plot(temp_holt, lwd = 3)
+```
+
+This graph shows that visually the summers are getting longer and warmer - the distances between the maximum temperature for each year and the temperature dropoff at the end of each dataset period (October) have been steadily shortening through the time series, indicating that the summer temperature peaks have been (generally) coming later and later each year. As a result, we can conclude that the unofficial end of summer has been getting later over the past 20 years.
+
+

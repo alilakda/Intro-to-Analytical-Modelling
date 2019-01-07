@@ -1,0 +1,140 @@
+---
+title: "hw6"
+output: pdf_document
+author: "Kunle Lawal, Anubhav Rana, Mihir Tulpule, Ali Mujtaba Lakdawala"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+crime_data <- read.table("uscrime.txt", header = TRUE)
+
+orig_crimemod <- lm(Crime ~ ., data = crime_data)
+summary(orig_crimemod)
+```
+
+We conduct a PCA of our crime data in order to reduce the variables used in our analysis. 
+
+```{r}
+crimepca <- prcomp(crime_data[,-16], scale.=TRUE, center = TRUE)
+
+summary(crimepca)
+```
+
+
+From our crime pca model we would like to choose the most important components. For this we plot the variances. 
+```{r}
+variance <- crimepca$sdev^2
+
+prop_variance <- variance/sum(variance)
+plot(prop_variance,
+     xlab = "Principal Component",
+     ylab = "Proportional Variance",
+     ylim = c(0,1) , type= "b")
+```
+
+The variance plot does not confirm certainly which is the best choice between 4,5 or 6 components. We investigated further using a screeplot which provides additional insight into the best number of components to chose. 
+
+```{r}
+screeplot(crimepca, main = "Scree Plot", type = "line")
+abline(h=1, col="blue")
+```
+
+From the screeplot we can identify that the best number of components is 5. Thus we continue to build our new linear model using the top 5 Principle Components. 
+
+```{r}
+# We first gather the components we need. 
+comb_crime <- cbind(crimepca$x[,1:4],crime_data[,16])
+colnames(comb_crime) <- c("PC1", "PC2", "PC3", "PC4", "Crime")
+
+# Then create a model using those components. 
+pcacrimemod <- lm(Crime ~., data = as.data.frame(comb_crime))
+summary(pcacrimemod)
+```
+
+
+Now that we have our linear model in terms of the components of the PCA we would like to explain it back in terms of the regression coefficents of our original model. 
+
+For this calculation we need the following: 
+```{r}
+# Matrix of Eigenvectors: 
+beta <- pcacrimemod$coefficients[2:5]
+VBeta <- crimepca$rotation[1:4] * beta
+VBeta
+
+
+beta0 <- pcacrimemod$coefficients[1]
+beta0
+adjustedBeta0=beta0+t(as.matrix(crimepca$center))%*%(VBeta/crimepca$scale)
+adjustedBeta0
+adjustedbeta=VBeta/crimepca$scale
+adjustedbeta
+
+X = crime_data[,-ncol(crime_data)]
+y_hat = as.matrix(X) %*% as.matrix(adjustedbeta) + adjustedBeta0[1,1]
+```
+
+
+Now that we have our converted coefficients we can use that to calculate the prediction of our new data point. 
+
+```{r}
+new_data_point = data.frame(
+M = 14.0, 
+So = 0,  
+Ed = 10.0,  
+Po1 = 12.0,  
+Po2 = 15.5,  
+LF = 0.640,  
+M.F = 94.0,  
+Pop = 150,  
+NW = 1.1,  
+U1 = 0.120,  
+U2 = 3.6,  
+Wealth = 3200,  
+Ineq = 20.1,  
+Prob = 0.04,  
+Time = 39.0)
+
+crime_prediction <- sum(
+  adjustedbeta[1] %*% new_data_point$M,
+  adjustedbeta[2] %*% new_data_point$So,
+  adjustedbeta[3] %*% new_data_point$Ed,
+  adjustedbeta[4] %*% new_data_point$Po1,
+  adjustedbeta[5] %*% new_data_point$Po2,
+  adjustedbeta[6] %*% new_data_point$LF,
+  adjustedbeta[7] %*% new_data_point$M.F,
+  adjustedbeta[8] %*% new_data_point$Pop,
+  adjustedbeta[9] %*% new_data_point$NW,
+  adjustedbeta[10] %*% new_data_point$U1,
+  adjustedbeta[11] %*% new_data_point$U2,
+  adjustedbeta[12] %*% new_data_point$Wealth,
+  adjustedbeta[13] %*% new_data_point$Ineq,
+  adjustedbeta[14] %*% new_data_point$Prob,
+  adjustedbeta[15] %*% new_data_point$Time,
+  adjustedBeta0
+)
+
+# Our manual prediction of crime. 
+crime_prediction
+
+```
+We get a prediction of 2459 which is much higher than our prediction of 1155 from the linear regression model. As a result of the r-squared of the PCA model is 0.24 which is super low compared to the original linear regression model. Showing that the original linear model was superior. 
+\newpage
+We can use another method to find the prediction as well rather than calculating it manually. 
+
+For this  method we can convert the data point into its predicted pca components and then use that new pca data point in our pca linear model. The benefit of this method would be that we are able to access the prediction interval as well. 
+
+
+
+```{r}
+pred_df <- data.frame(predict(crimepca, new_data_point)) 
+head(pred_df)
+
+pred <- predict(pcacrimemod, pred_df, interval = 'prediction')
+pred
+
+```
+
+The prediction is 1112. Which is similar to the original prediction and confidence interval. 

@@ -1,0 +1,180 @@
+---
+title: "hw1.1 & 1.2"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+Homework 1 submitted by Anubhav Rana, Kunle Lawal, Mihir Tulpule and Ali Mujtaba Lakdawala 
+
+# 1.1
+*Describe a situation or problem from your job, everyday life, current events, etc., for which a classification model would be appropriate. List some (up to 5) predictors that you might use.*
+
+An everyday situation for which a classification model would be appropriate would be the classification of email as spam or not. In this particular case, an algorithm is used to automatically sort out electronic messages in an effort to streamline our email inboxes and generally improve the user experience while using specific email services. There are multiple predictors such an algorithm might use to classify incoming emails as spam or not – these may include:
+
+1.	Recognition of the person/entity sending the incoming email (whether said entity is a known contact/well-known organization)
+2.	Commonly recognized spelling or grammatical errors in the text of the received email
+3.	The inclusion of links to external webpages in the email (especially unsecured or potentially malicious links)
+4.	The presence of attached documents in said email (as well as the format of said documents, e.g. .txt, .doc, .exe)
+5.	The inclusion and amount of numbers (pricing, phone numbers, etc.) present in the email text
+
+There are many more subtle factors that could be used in parsing through the text of the email (for instance, the frequency of word repetition in the email, the complexity of the language used, the presence of significant words that could be pre-marked as “red flags,” etc.). A classification model would be appropriate in this instance because we are trying to categorize the emails into two distinct qualitative groups (“spam” or “not spam”) based on a given number of predictors.  
+
+
+# 1.2
+
+*1.	Using the support vector machine function ksvm contained in the R package kernlab, find a good classifier for this data. Show the equation of your classifier, and how well it classifies the data points in the full data set.*
+
+### Reading the data 
+
+```{r, eval = TRUE}
+credit_card_data <- read.table("credit_card_data.txt", header = FALSE)
+head(credit_card_data)
+require("kernlab")
+credit_card_data <- as.matrix(credit_card_data)
+## Applying the kvsm model with C = 100 
+model <- ksvm(credit_card_data[,1:10],credit_card_data[,11],
+        type="C-svc",kernel="vanilladot",C=100,scaled=TRUE)
+#Investigating the model:
+summary(model)
+a <- colSums(model@xmatrix[[1]] * model@coef[[1]])
+a
+a0 <- -model@b
+a0
+#Checking the model accuracy:
+pred <- predict(model,credit_card_data[,1:10])
+pred
+sum(pred == credit_card_data[,11])/ nrow(credit_card_data)
+``` 
+&nbsp;
+
+&nbsp;
+
+*2.	You are welcome, but not required, to try other (nonlinear) kernels as well; we’re not covering them in this course, but they can sometimes be useful and might provide better predictions than vanilladot.*  
+
+### Testing other kernels
+```{r, eval = TRUE}
+#Exploring other kernels for kvsm - such as rbfdot
+model2 <- ksvm(credit_card_data[,1:10],credit_card_data[,11],
+          type="C-svc",kernel="rbfdot",C=100,scaled=TRUE)
+a <- colSums(model2@xmatrix[[1]] * model2@coef[[1]])
+a0 <- -model2@b
+pred2 <- predict(model2,credit_card_data[,1:10])
+sum(pred2 == credit_card_data[,11])/ nrow(credit_card_data)
+```
+`rbfdot` gives a better prediction with a 10% higher accuracy at 0.957
+
+&nbsp;
+
+Exploring another kernel for ksvm `splinedot`
+
+
+```{r, eval = TRUE}
+require("kernlab")
+model3 <- ksvm(credit_card_data[,1:10],credit_card_data[,11],
+          type="C-svc",kernel="splinedot",C=100,scaled=TRUE)
+a <- colSums(model3@xmatrix[[1]] * model3@coef[[1]])
+a0 <- -model3@b
+pred3 <- predict(model3,credit_card_data[,1:10])
+sum(pred3 == credit_card_data[,11])/ nrow(credit_card_data)
+
+```
+`splinedot` also provides a better prediction showing that this data is better described by a more advanced model rather than a simple linear model such as vanilla dot
+
+&nbsp;
+\pagebreak
+
+
+*3.	Using the k-nearest-neighbors classification function kknn contained in the R kknn package, suggest a good value of k, and show how well it classifies that data points in the full data set.  Don’t forget to scale the data (scale=TRUE in kknn).*
+
+Citation for Code Reference: http://rstudio-pubs-static.s3.amazonaws.com/24844_335efcfc09954ad99c4e05d9548ed2ad.html
+
+&nbsp;
+
+We have two solutions for this problem. The first solution takes a test and training data set. 
+
+The second solution uses all the data and loops through model 1 row at a time.
+```{r}
+library(kknn)
+
+data = read.table("credit_card_data.txt")
+Sample <- sample(1:654, 196)
+data.test <- data[Sample, ]
+data.train <- data[-Sample, ]
+dim(data)
+
+dim(data.test)
+dim(data.train)
+
+```
+
+We set kmax = 9 as it minimizes the mean squared error shown by the plot:
+
+&nbsp;
+```{r, eval= TRUE}
+model4 <- train.kknn(V11 ~ ., data = data.train, kmax = 9)
+model4
+plot(model4)
+```
+&nbsp;
+
+In the following loop we determine the optimum threshold by looping through all the possible thresholds from 0.05 - 0.85 and checking the accuracy for each one. 
+&nbsp;
+```{r}
+for (t in seq(0.4, 0.85, 0.05)){
+  prediction <- predict(model4, data.test[, -11])
+#The conditional statement categorizes the prediction
+#It also converts the variable to discrete. 
+  t_prediction = ifelse(prediction > t, 1 ,0)
+  CM <- table(data.test[, 11], t_prediction)
+  print(CM)
+  
+  accuracy <- (sum(diag(CM)))/sum(CM)
+  print(accuracy)
+  print(t)
+  print(strrep("-", 10))
+  
+}
+
+```
+
+We also used just 1 point in our test set (and the rest in the training) and evaluated the model for thresholds ranging from 0.4 to 0.7.
+
+&nbsp;
+```{r, eval= TRUE}
+#This is a similar loop to the the one in the previous solution. 
+for (t in seq(0.4, 0.7, 0.05)){
+  for (i in 1:nrow(data)){
+    data.test = data[i,]
+    data.train = data[-i,]
+    
+    model <- train.kknn(V11 ~ ., data = data.train, kmax = 9)
+    
+    prediction <- predict(model, data.test[, -11])
+    
+    
+    t_prediction <- ifelse(prediction < t, 0, 1)
+    
+    if (t_prediction == data.test[, 11]){
+      data$accuracy[i] = 100
+    }
+    else{
+      data$accuracy[i] = 0
+    }
+    
+  }
+  
+  total_accuracy = sum(data$accuracy)
+  print(total_accuracy)
+  
+  final_accuracy = total_accuracy / (654*100)
+  print(final_accuracy)
+  print(t)
+  print(strrep('--', 10))
+}  
+
+```

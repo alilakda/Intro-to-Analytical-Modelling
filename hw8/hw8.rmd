@@ -1,0 +1,96 @@
+---
+title: "hw8"
+author: "Kunle Lawal, Anubhav Rana, Mihir Tulpule and Ali Lakdawala"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Stepwise models 
+```{r}
+require(data.table)
+crimedata = read.table('uscrime.txt', header = TRUE)
+library(MASS)
+
+#Original Linear Model with all variables 
+model <- lm(Crime ~., data = crimedata)
+summary(model)
+
+#Model with only significant variables 
+model2 <- lm(Crime ~ Ed + Ineq + M +Po2 + Prob + U2, data = crimedata )
+summary(model2)
+
+
+#Stepwise with all
+step_model <- step(model, direction = "both", trace = FALSE)
+summary(step_model)
+
+#Stepwise with only significant 
+step_model2 <- step(model2, direction = "both", trace = FALSE)
+summary(step_model2)
+
+
+
+
+
+```
+# Lasso Model & Elastic Net
+
+
+```{r message = FALSE}
+library(glmnet)
+set.seed(1234)
+scaleData <- scale(crimedata, center = TRUE, scale = TRUE)
+
+x <- scaleData[,-16]
+y <- scaleData[,16]
+
+m <- nrow(x)
+trn <- sample(1:m, size = round(m*0.7), replace = FALSE)
+trainx <- x[trn,]
+testx <- x[-trn,]
+
+
+train_y <- y[trn]
+test_y <- y[-trn]
+
+
+fit.lasso <- glmnet(trainx, train_y, family = "gaussian", alpha = 1)
+fit.elnet <- glmnet(trainx, train_y, family = "gaussian", alpha = 0.5)
+
+R2 <- c()
+for (i in 0:10) {
+                                           
+  elasticfit <- cv.glmnet(trainx, train_y, type.measure="mse", 
+                          alpha=i/10,family="gaussian")
+  R2 = cbind(R2, elasticfit$glmnet.fit$dev.ratio[which(elasticfit$glmnet.fit$lambda == elasticfit$lambda.min)])
+}
+R2
+
+alphas <- (0:10)/10
+
+plot(alphas, R2)
+lines(alphas, R2)
+```
+
+
+In our original model with all the predictors  adjusted the Multiple R-Squared is 0.8031
+In original model with only significant predictors have the Multiple R-Squared with 0.744
+
+For Stepwise model with all predictors we noticed R Squared Values of 0.789
+For Stepwise model with just significant we notice the same R squared as the original model with significant predictors 0.744.
+
+
+Then for Elastic net and Lasso models we plotted the r-squared values above for alphas 0 -1. The maximum R-Squared value for the Elastic models was higher than the maximum value for the Lasso model but only by a very small margin. The maximum value is around 0.899. 
+
+What we found is that Elastic and Lasso models were superior to the Stepwise model in terms of quality. 
+We also notice that Stepwise regression and the orginal regression model with only significant predictors the R-squared value is the same. This makese sense as stepwise model chooses the top predictors and in this case they were all significant. 
+
+It is important to note that all three methods produced models that were superior to the original linear regression model in terms of r-squared values or complexity. 
+
+
+
+
